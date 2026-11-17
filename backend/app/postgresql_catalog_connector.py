@@ -10,8 +10,10 @@ import base64
 import hashlib
 import json
 import re
+from collections.abc import Sequence
+from contextlib import suppress
 from datetime import UTC, datetime
-from typing import Any, Protocol, Sequence
+from typing import Any, Protocol
 from urllib.parse import urlsplit
 
 from .enterprise_context import ContextValidationError
@@ -237,19 +239,13 @@ class PostgreSQLCatalogReader:
             raise ContextValidationError("Read-only PostgreSQL catalog collection failed") from exc
         finally:
             if cursor is not None:
-                try:
+                with suppress(Exception):
                     cursor.close()
-                except Exception:
-                    pass
             if connection is not None:
-                try:
+                with suppress(Exception):
                     connection.rollback()
-                except Exception:
-                    pass
-                try:
+                with suppress(Exception):
                     connection.close()
-                except Exception:
-                    pass
 
 
 class PostgreSQLCatalogAttestor:
@@ -257,7 +253,7 @@ class PostgreSQLCatalogAttestor:
 
     def __init__(self, signing_provider: SigningKeyProvider):
         if not callable(getattr(signing_provider, "sign", None)):
-            raise ValueError("signing_provider must implement sign(key_id, message)")
+            raise TypeError("signing_provider must implement sign(key_id, message)")
         self.signing_provider = signing_provider
 
     @staticmethod
