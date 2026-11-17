@@ -76,11 +76,11 @@ class PostgreSQLProvenanceVerifier:
         if not isinstance(signed_at, str):
             raise ContextValidationError("attestation signed_at must be an ISO timestamp")
         try:
-            signed_time = datetime.fromisoformat(signed_at.replace("Z", "+00:00"))
+            signed_time = datetime.fromisoformat(signed_at)
             if signed_time.tzinfo is None:
                 raise ValueError
             signed_time = signed_time.astimezone(UTC)
-            discovered = datetime.fromisoformat(snapshot["discovered_at"].replace("Z", "+00:00"))
+            discovered = datetime.fromisoformat(snapshot["discovered_at"])
             if discovered.tzinfo is None:
                 raise ValueError
             discovered = discovered.astimezone(UTC)
