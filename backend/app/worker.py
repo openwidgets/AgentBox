@@ -13,8 +13,8 @@ import signal
 import threading
 import time
 import uuid
-from dataclasses import dataclass, field
 from collections.abc import Callable, Mapping
+from dataclasses import dataclass, field
 from typing import Any
 
 from jsonschema import Draft202012Validator
@@ -91,7 +91,7 @@ def _capability_handler_child(connection: Any, handler: CapabilityHandler,
         if len(envelope) > 1_048_576:
             raise ValueError("capability handler result exceeds 1 MiB")
         connection.send_bytes(envelope)
-    except Exception:
+    except Exception:  # noqa: BLE001 - return a sanitized child-process failure envelope
         try:
             connection.send_bytes(b'{"ok":false}')
         except (BrokenPipeError, OSError):
