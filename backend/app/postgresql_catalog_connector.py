@@ -235,7 +235,7 @@ class PostgreSQLCatalogReader:
             return snapshot
         except ContextValidationError:
             raise
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - redact arbitrary driver exception details
             raise ContextValidationError("Read-only PostgreSQL catalog collection failed") from exc
         finally:
             if cursor is not None:
