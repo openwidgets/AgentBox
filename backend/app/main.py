@@ -10,19 +10,18 @@ from pathlib import Path
 from typing import Any, Literal
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, status
+from jsonschema import Draft202012Validator
+from jsonschema import ValidationError as JSONSchemaValidationError
 from pydantic import BaseModel, ConfigDict, Field
-from jsonschema import Draft202012Validator, ValidationError as JSONSchemaValidationError
 
 from .authentication import require_authenticated_principal
 from .authorization import authorize_capability
 from .authorization_audit import AuthorizationAuditStore
 from .authorization_policy import validate_authorization_policy
-from .context_assembly import ContextAssemblyService, ContextAssemblyValidationError
-from .cognitive_runtime import (
-    CognitiveRunConflictError,
-    CognitiveRunNotFoundError,
-    CognitiveRunService,
-    CognitiveRunValidationError,
+from .candidate_generation import (
+    CandidateConflictError,
+    CandidateGenerationService,
+    CandidateValidationError,
 )
 from .capability_registry import (
     CapabilityConflictError,
@@ -30,11 +29,13 @@ from .capability_registry import (
     CapabilityRegistry,
     CapabilityValidationError,
 )
-from .candidate_generation import (
-    CandidateConflictError,
-    CandidateGenerationService,
-    CandidateValidationError,
+from .cognitive_runtime import (
+    CognitiveRunConflictError,
+    CognitiveRunNotFoundError,
+    CognitiveRunService,
+    CognitiveRunValidationError,
 )
+from .context_assembly import ContextAssemblyService, ContextAssemblyValidationError
 from .enterprise_context import (
     ContextConflictError,
     ContextNotFoundError,
@@ -46,12 +47,6 @@ from .evaluation import (
     EvaluationProfileNotFoundError,
     EvaluationRunNotFoundError,
     EvaluationService,
-)
-from .experiment_comparison import (
-    ExperimentComparisonConflictError,
-    ExperimentComparisonNotFoundError,
-    ExperimentComparisonService,
-    ExperimentComparisonValidationError,
 )
 from .execution import (
     DeterministicFakeProvider,
@@ -73,10 +68,16 @@ from .experience import (
     ExperienceNotFoundError,
     ExperienceValidationError,
 )
+from .experiment_comparison import (
+    ExperimentComparisonConflictError,
+    ExperimentComparisonNotFoundError,
+    ExperimentComparisonService,
+    ExperimentComparisonValidationError,
+)
 from .openai_provider import OpenAICompatibleProvider
+from .postgresql_connectors import PostgreSQLConnectorRegistry
 from .postgresql_ingestion import PostgreSQLSnapshotIngestion
 from .postgresql_provenance import PostgreSQLProvenanceVerifier
-from .postgresql_connectors import PostgreSQLConnectorRegistry
 from .principal import Principal
 from .registry import AgentNotFoundError, AgentRegistry, VersionConflictError
 from .tenant_registry import TenantNotFoundError, TenantRegistry
@@ -1217,7 +1218,7 @@ def create_app(database_path: str | None = None) -> FastAPI:
         }
         workload_hash = hashlib.sha256(
             json.dumps(workload_definition, sort_keys=True, separators=(",", ":"),
-                       ensure_ascii=False, allow_nan=False).encode("utf-8")
+                       ensure_ascii=False, allow_nan=False).encode()
         ).hexdigest()
         submitted_results: list[dict[str, Any]] = []
         case_evidence: list[dict[str, Any]] = []
