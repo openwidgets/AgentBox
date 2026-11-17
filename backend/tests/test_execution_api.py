@@ -4,7 +4,6 @@ import json
 import sqlite3
 
 import pytest
-
 from auth_helpers import configure_test_access
 from fastapi.testclient import TestClient
 
