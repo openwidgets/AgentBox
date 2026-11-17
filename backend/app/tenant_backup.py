@@ -406,9 +406,12 @@ class TenantBackupService:
                         and not isinstance(value, (str, int, float, bool))
                     ):
                         raise BackupFormatError(f"Backup row value is invalid for {table}")
-                    if isinstance(value, int) and not isinstance(value, bool):
-                        if not -(2**63) <= value < 2**63:
-                            raise BackupFormatError(f"Backup integer is out of range for {table}")
+                    if (
+                        isinstance(value, int)
+                        and not isinstance(value, bool)
+                        and not -(2**63) <= value < 2**63
+                    ):
+                        raise BackupFormatError(f"Backup integer is out of range for {table}")
                     if isinstance(value, float) and not math.isfinite(value):
                         raise BackupFormatError(f"Backup number is not finite for {table}")
         if not isinstance(tenant.get("metadata_json"), str):
