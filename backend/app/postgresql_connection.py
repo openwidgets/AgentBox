@@ -7,7 +7,8 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Any, Callable, Protocol
+from collections.abc import Callable
+from typing import Any, Protocol
 
 from .enterprise_context import ContextValidationError
 
@@ -74,7 +75,7 @@ class PostgreSQLConnectionFactory:
         connect: Callable[..., Any] | None = None,
     ) -> None:
         if not callable(getattr(secret_provider, "resolve", None)):
-            raise ValueError("secret_provider must implement resolve(secret_ref)")
+            raise TypeError("secret_provider must implement resolve(secret_ref)")
         self.config = config
         self.secret_provider = secret_provider
         self._connect = connect
@@ -100,7 +101,7 @@ class PostgreSQLConnectionFactory:
             if self.config.sslrootcert is not None:
                 options["sslrootcert"] = self.config.sslrootcert
             return connect(conninfo, **options)
-        except Exception:
+        except Exception:  # noqa: BLE001 - redact sensitive connector exceptions
             # Secret-manager, driver and server exceptions can contain DSNs,
             # usernames, hostnames or passwords. Never propagate their text.
             raise ContextValidationError(
