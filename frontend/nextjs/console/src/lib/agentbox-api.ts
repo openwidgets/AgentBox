@@ -184,7 +184,6 @@ export class AgentBoxBffClient {
     return this.request(`/v1/executions/${encodeURIComponent(executionId)}`);
   }
 
- 
   submitExecutionJob(
     agentId: string,
     version: string,
@@ -215,6 +214,7 @@ export class AgentBoxBffClient {
       method: "POST",
     });
   }
+
   createEvaluationProfile(profile: Record<string, unknown>): Promise<Record<string, unknown>> {
     return this.request("/v1/evaluation-profiles", {
       method: "POST",
