@@ -6,8 +6,8 @@ Secret material is never stored in contracts, jobs, or audit records.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
 import re
+from dataclasses import dataclass
 from typing import Protocol
 
 _SECRET_REF = re.compile(r"^secret://[a-z0-9][a-z0-9._/-]{2,254}$")
