@@ -58,8 +58,10 @@ def validate_cognitive_event(event: dict[str, Any]) -> list[dict[str, str]]:
     event_type = event["event_type"]
     evidence_refs = event.get("evidence_refs", [])
     payload = event.get("payload", {})
-    if event_type in {"verification.passed", "verification.failed", "memory.accepted"}:
-        if event["evidence_status"] != "verified" or not evidence_refs:
+    if (
+        event_type in {"verification.passed", "verification.failed", "memory.accepted"}
+        and (event["evidence_status"] != "verified" or not evidence_refs)
+    ):
             result.append({
                 "path": "/evidence_refs",
                 "message": f"{event_type} requires verified evidence references.",
