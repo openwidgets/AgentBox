@@ -23,7 +23,7 @@ const starterManifest = {
     timeout_seconds: 120,
   },
   model_binding: {
-    provider_id: "openai-compatible",
+    provider_id: "provider.openai",
     model_id: "gpt-4o-mini",
   },
   tools: [],
