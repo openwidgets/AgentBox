@@ -4,20 +4,20 @@ import base64
 from datetime import UTC, datetime
 
 import pytest
+
+from auth_helpers import configure_test_access
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+from fastapi.testclient import TestClient
 
 from app.enterprise_context import ContextValidationError
+from app.main import create_app
 from app.postgresql_catalog_connector import (
     PostgreSQLCatalogAttestor,
     PostgreSQLCatalogConnector,
     PostgreSQLCatalogReader,
 )
-from fastapi.testclient import TestClient
-
-from app.main import create_app
 from app.postgresql_provenance import PostgreSQLProvenanceVerifier
-from auth_helpers import configure_test_access
 
 
 class FakeCursor:
