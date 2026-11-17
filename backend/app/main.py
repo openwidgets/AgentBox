@@ -1230,7 +1230,7 @@ def create_app(database_path: str | None = None) -> FastAPI:
             ).hexdigest()
             case_key = hashlib.sha256(
                 f"{idempotency_key}:{principal.tenant_id}:{agent_id}:{artifact.content_hash}:"
-                f"{profile_record['content_hash']}:{case_id}".encode("utf-8")
+                f"{profile_record['content_hash']}:{case_id}".encode()
             ).hexdigest()
             try:
                 execution = app.state.executions.execute(
