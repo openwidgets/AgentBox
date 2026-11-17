@@ -253,7 +253,7 @@ class PostgreSQLCatalogAttestor:
 
     def __init__(self, signing_provider: SigningKeyProvider):
         if not callable(getattr(signing_provider, "sign", None)):
-            raise TypeError("signing_provider must implement sign(key_id, message)")
+            raise ValueError("signing_provider must implement sign(key_id, message)")
         self.signing_provider = signing_provider
 
     @staticmethod
