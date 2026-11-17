@@ -10,7 +10,6 @@ from dataclasses import dataclass
 import re
 from typing import Protocol
 
-
 _SECRET_REF = re.compile(r"^secret://[a-z0-9][a-z0-9._/-]{2,254}$")
 _PURPOSE = re.compile(r"^[a-z][a-z0-9._:-]{2,127}$")
 
