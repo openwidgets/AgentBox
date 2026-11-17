@@ -75,7 +75,7 @@ class PostgreSQLConnectionFactory:
         connect: Callable[..., Any] | None = None,
     ) -> None:
         if not callable(getattr(secret_provider, "resolve", None)):
-            raise TypeError("secret_provider must implement resolve(secret_ref)")
+            raise ValueError("secret_provider must implement resolve(secret_ref)")
         self.config = config
         self.secret_provider = secret_provider
         self._connect = connect
