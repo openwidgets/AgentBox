@@ -6,8 +6,8 @@ Secret material is never stored in contracts, jobs, or audit records.
 """
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
+import re
 from typing import Protocol
 
 
