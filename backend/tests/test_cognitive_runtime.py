@@ -11,7 +11,6 @@ from app.cognitive_runtime import (
 )
 from app.tenant_registry import TenantRegistry
 
-
 HASH = "a" * 64
 
 
