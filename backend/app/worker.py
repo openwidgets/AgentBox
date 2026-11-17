@@ -14,22 +14,23 @@ import threading
 import time
 import uuid
 from dataclasses import dataclass, field
-from typing import Any, Callable, Mapping
+from collections.abc import Callable, Mapping
+from typing import Any
+
+from jsonschema import Draft202012Validator
+from jsonschema import ValidationError as JSONSchemaValidationError
 
 from .capability_process_limits import apply_capability_process_limits
+from .capability_registry import CapabilityRegistry
 from .capability_secrets import (
     CapabilitySecretBroker,
     CapabilitySecretRequest,
     DenyAllCapabilitySecretBroker,
     validate_secret_request,
 )
-
-from jsonschema import Draft202012Validator, ValidationError as JSONSchemaValidationError
-
 from .execution import ExecutionService
 from .execution_jobs import DurableExecutionJobService, JobLeaseError
 from .registry import AgentRegistry
-from .capability_registry import CapabilityRegistry
 
 LOGGER = logging.getLogger("agentbox.worker")
 
@@ -90,7 +91,7 @@ def _capability_handler_child(connection: Any, handler: CapabilityHandler,
         if len(envelope) > 1_048_576:
             raise ValueError("capability handler result exceeds 1 MiB")
         connection.send_bytes(envelope)
-    except BaseException:
+    except Exception:
         try:
             connection.send_bytes(b'{"ok":false}')
         except (BrokenPipeError, OSError):
