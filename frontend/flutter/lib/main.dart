@@ -1558,4 +1558,3 @@ class _AgentBoxHomePageState extends State<AgentBoxHomePage> {
     );
   }
 }
-}
