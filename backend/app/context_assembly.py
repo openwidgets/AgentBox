@@ -54,9 +54,7 @@ class ContextAssemblyService:
         end = record.get("valid_to")
         if start and datetime.fromisoformat(start) > now:
             return False
-        if end and datetime.fromisoformat(end) < now:
-            return False
-        return True
+        return not (end and datetime.fromisoformat(end) < now)
 
     def assemble(
         self,
