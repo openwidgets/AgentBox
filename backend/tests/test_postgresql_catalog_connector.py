@@ -4,7 +4,6 @@ import base64
 from datetime import UTC, datetime
 
 import pytest
-
 from auth_helpers import configure_test_access
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
