@@ -6,8 +6,9 @@ AgentBox API and connector registry never receive or persist the DSN.
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Protocol
+from typing import Any, Protocol
 
 from .enterprise_context import ContextValidationError
 
@@ -100,7 +101,7 @@ class PostgreSQLConnectionFactory:
             if self.config.sslrootcert is not None:
                 options["sslrootcert"] = self.config.sslrootcert
             return connect(conninfo, **options)
-        except Exception:
+        except Exception:  # noqa: BLE001 - redact sensitive connector exceptions
             # Secret-manager, driver and server exceptions can contain DSNs,
             # usernames, hostnames or passwords. Never propagate their text.
             raise ContextValidationError(

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import json
 
+from auth_helpers import configure_test_access
 from fastapi.testclient import TestClient
 
-from auth_helpers import configure_test_access
 from app.main import create_app
 
 

@@ -185,7 +185,7 @@ class _AgentBoxHomePageState extends State<AgentBoxHomePage> {
           'timeout_seconds': 120,
         },
         'model_binding': {
-          'provider_id': 'openai-compatible',
+          'provider_id': 'provider.openai',
           'model_id': 'gpt-4o-mini',
         },
         'tools': <dynamic>[],
@@ -1080,7 +1080,35 @@ class _AgentBoxHomePageState extends State<AgentBoxHomePage> {
     final api = _api;
     if (!_signedIn || api == null) return;
     final hash = _experimentWorkloadHashController.text.trim();
-    if (!RegExp(r'^[a-fA-F0-9]{64}
+    if (!RegExp(r'^[a-fA-F0-9]{64}$').hasMatch(hash)) {
+      _setNotice('Workload SHA-256 must contain exactly 64 hexadecimal characters.', error: true);
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      final result = await api.compareAgentExperiment(
+        agentId: _experimentAgentController.text.trim(),
+        parentVersion: _experimentParentVersionController.text.trim(),
+        candidateVersion: _experimentCandidateVersionController.text.trim(),
+        parentEvaluationRunId: _experimentParentRunController.text.trim(),
+        candidateEvaluationRunId: _experimentCandidateRunController.text.trim(),
+        workloadRef: _experimentWorkloadRefController.text.trim(),
+        workloadHash: hash,
+      );
+      if (!mounted) return;
+      setState(() {
+        _experimentComparison = result;
+        _experimentComparisonIdController.text = result['comparison_id'].toString();
+      });
+      _setNotice('Comparison saved. Workload identity remains caller-asserted; result is advisory only.');
+    } catch (error) {
+      _setNotice('Could not compare parent and candidate: $error', error: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Widget _buildCognitiveRuntime() {
     const stages = [
       'intent', 'context', 'cognition', 'capability', 'responsibility',
       'execution', 'observation', 'verification', 'memory',
@@ -1275,35 +1303,6 @@ class _AgentBoxHomePageState extends State<AgentBoxHomePage> {
       child: SelectableText(JsonEncoder.withIndent('  ').convert(value), style: const TextStyle(fontFamily: 'monospace', fontSize: 10, height: 1.5)),
     );
   }
-}
-).hasMatch(hash)) {
-      _setNotice('Workload SHA-256 must contain exactly 64 hexadecimal characters.', error: true);
-      return;
-    }
-    setState(() => _busy = true);
-    try {
-      final result = await api.compareAgentExperiment(
-        agentId: _experimentAgentController.text.trim(),
-        parentVersion: _experimentParentVersionController.text.trim(),
-        candidateVersion: _experimentCandidateVersionController.text.trim(),
-        parentEvaluationRunId: _experimentParentRunController.text.trim(),
-        candidateEvaluationRunId: _experimentCandidateRunController.text.trim(),
-        workloadRef: _experimentWorkloadRefController.text.trim(),
-        workloadHash: hash,
-      );
-      if (!mounted) return;
-      setState(() {
-        _experimentComparison = result;
-        _experimentComparisonIdController.text = result['comparison_id'].toString();
-      });
-      _setNotice('Comparison saved. Workload identity remains caller-asserted; result is advisory only.');
-    } catch (error) {
-      _setNotice('Could not compare parent and candidate: $error', error: true);
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
   Future<void> _loadExperimentComparison() async {
     final api = _api;
     final id = _experimentComparisonIdController.text.trim();

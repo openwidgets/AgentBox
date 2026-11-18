@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from auth_helpers import configure_test_access
 from fastapi.testclient import TestClient
 
-from auth_helpers import configure_test_access
+from app.authentication import require_authenticated_principal
 from app.main import create_app
 from app.principal import Principal
-from app.authentication import require_authenticated_principal
 
 
 def make_client(tmp_path: Path):

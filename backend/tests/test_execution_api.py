@@ -7,7 +7,12 @@ import pytest
 from auth_helpers import configure_test_access
 from fastapi.testclient import TestClient
 
-from app.execution import DeterministicFakeProvider, ExecutionService, ProviderError, ProviderResponse
+from app.execution import (
+    DeterministicFakeProvider,
+    ExecutionService,
+    ProviderError,
+    ProviderResponse,
+)
 from app.main import create_app
 
 

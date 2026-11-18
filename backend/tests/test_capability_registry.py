@@ -85,12 +85,10 @@ def test_invalid_contract_rejected(tmp_path):
 def test_sqlite_guards_prevent_update_and_delete(tmp_path):
     store = registry(tmp_path)
     store.register(contract(), "tenant-a")
-    with store._connection() as connection:
-        with pytest.raises(sqlite3.IntegrityError):
-            connection.execute("UPDATE capability_versions SET version='2.0.0'")
-    with store._connection() as connection:
-        with pytest.raises(sqlite3.IntegrityError):
-            connection.execute("DELETE FROM capability_versions")
+    with store._connection() as connection, pytest.raises(sqlite3.IntegrityError):
+        connection.execute("UPDATE capability_versions SET version='2.0.0'")
+    with store._connection() as connection, pytest.raises(sqlite3.IntegrityError):
+        connection.execute("DELETE FROM capability_versions")
     store.close()
 
 

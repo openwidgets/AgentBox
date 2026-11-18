@@ -11,7 +11,6 @@ from app.cognitive_runtime import (
 )
 from app.tenant_registry import TenantRegistry
 
-
 HASH = "a" * 64
 
 
@@ -167,17 +166,15 @@ def test_cognitive_event_journal_is_append_only(tmp_path):
     run, _, _ = create_run(service)
     connection = service._connect()
     try:
-        with pytest.raises(sqlite3.IntegrityError, match="append-only"):
-            with connection:
-                connection.execute(
-                    "UPDATE cognitive_events SET event_type='intent.rejected' WHERE run_id=?",
-                    (run["run_id"],),
-                )
-        with pytest.raises(sqlite3.IntegrityError, match="append-only"):
-            with connection:
-                connection.execute(
-                    "DELETE FROM cognitive_events WHERE run_id=?", (run["run_id"],)
-                )
+        with pytest.raises(sqlite3.IntegrityError, match="append-only"), connection:
+            connection.execute(
+                "UPDATE cognitive_events SET event_type='intent.rejected' WHERE run_id=?",
+                (run["run_id"],),
+            )
+        with pytest.raises(sqlite3.IntegrityError, match="append-only"), connection:
+            connection.execute(
+                "DELETE FROM cognitive_events WHERE run_id=?", (run["run_id"],)
+            )
     finally:
         connection.close()
     tenants.close()

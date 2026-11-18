@@ -10,8 +10,10 @@ import base64
 import hashlib
 import json
 import re
+from collections.abc import Sequence
+from contextlib import suppress
 from datetime import UTC, datetime
-from typing import Any, Protocol, Sequence
+from typing import Any, Protocol
 from urllib.parse import urlsplit
 
 from .enterprise_context import ContextValidationError
@@ -233,23 +235,17 @@ class PostgreSQLCatalogReader:
             return snapshot
         except ContextValidationError:
             raise
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - redact arbitrary driver exception details
             raise ContextValidationError("Read-only PostgreSQL catalog collection failed") from exc
         finally:
             if cursor is not None:
-                try:
+                with suppress(Exception):
                     cursor.close()
-                except Exception:
-                    pass
             if connection is not None:
-                try:
+                with suppress(Exception):
                     connection.rollback()
-                except Exception:
-                    pass
-                try:
+                with suppress(Exception):
                     connection.close()
-                except Exception:
-                    pass
 
 
 class PostgreSQLCatalogAttestor:
