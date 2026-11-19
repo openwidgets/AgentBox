@@ -1,6 +1,8 @@
 """AgentBox API: manifest registry and versioned evaluation service."""
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
+
 import copy
 import hashlib
 import hmac
@@ -523,8 +525,18 @@ def require_job_worker(authorization: str | None) -> None:
 
 
 def create_app(database_path: str | None = None) -> FastAPI:
+    @asynccontextmanager
+    async def lifespan(_: FastAPI):
+        try:
+            yield
+        finally:
+            close_stores = getattr(app.state, "close_stores", None)
+            if close_stores is not None:
+                close_stores()
+
     app = FastAPI(
         title="AgentBox API",
+        lifespan=lifespan,
         version="0.2.0",
         description=(
             "Frontend-independent API for versioned agent manifests and "
@@ -583,7 +595,6 @@ def create_app(database_path: str | None = None) -> FastAPI:
             store.close()
 
     app.state.close_stores = close_stores
-    app.add_event_handler("shutdown", close_stores)
 
     @app.get("/health")
     def health() -> dict[str, str]:
