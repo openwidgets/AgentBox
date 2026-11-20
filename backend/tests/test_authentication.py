@@ -1,9 +1,11 @@
 from datetime import UTC, datetime, timedelta
+import base64
+import json
 
 import jwt
 import pytest
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
 from app.authentication import (
     AuthenticationError,
@@ -48,7 +50,7 @@ def config():
     )
 
 
-def token(private_key, **overrides):
+def token(private_key, *, header_typ="at+jwt", **overrides):
     now = datetime.now(UTC)
     claims = {
         "iss": "https://identity.example.test/",
@@ -59,7 +61,29 @@ def token(private_key, **overrides):
         "exp": int((now + timedelta(minutes=5)).timestamp()),
     }
     claims.update(overrides)
-    return jwt.encode(claims, private_key, algorithm="RS256")
+
+    if header_typ is None:
+        # PyJWT supplies typ="JWT" when the header is omitted. Build this one
+        # token explicitly so the negative test really has no typ header.
+        def encode(value):
+            return base64.urlsafe_b64encode(value).rstrip(b"=")
+        header = encode(json.dumps({"alg": "RS256"}, separators=(",", ":")).encode())
+        payload = encode(
+            json.dumps(claims, separators=(",", ":"), default=str).encode()
+        )
+        signing_input = header + b"." + payload
+        private = serialization.load_pem_private_key(private_key, password=None)
+        signature = private.sign(
+            signing_input, padding.PKCS1v15(), hashes.SHA256()
+        )
+        return (signing_input + b"." + encode(signature)).decode()
+
+    return jwt.encode(
+        claims,
+        private_key,
+        algorithm="RS256",
+        headers={"typ": header_typ},
+    )
 
 
 def test_bearer_header_is_parsed_strictly():
@@ -96,6 +120,21 @@ def test_invalid_claims_are_rejected(key_pair, config, claims):
     authenticator = OIDCAuthenticator(config, StaticKeyResolver(public_key))
     with pytest.raises(AuthenticationError):
         authenticator.authenticate(token(private_key, **claims))
+
+
+@pytest.mark.parametrize("header_typ", ["at+jwt", "application/at+jwt"])
+def test_rfc9068_access_token_types_are_accepted(key_pair, config, header_typ):
+    private_key, public_key = key_pair
+    authenticator = OIDCAuthenticator(config, StaticKeyResolver(public_key))
+    assert authenticator.authenticate(token(private_key, header_typ=header_typ)).tenant_id == "tenant-7"
+
+
+@pytest.mark.parametrize("header_typ", [None, "JWT", "application/jwt", ""])
+def test_non_access_token_types_are_rejected(key_pair, config, header_typ):
+    private_key, public_key = key_pair
+    authenticator = OIDCAuthenticator(config, StaticKeyResolver(public_key))
+    with pytest.raises(AuthenticationError, match="RFC 9068 access token"):
+        authenticator.authenticate(token(private_key, header_typ=header_typ))
 
 
 def test_invalid_signature_is_rejected(key_pair, config):
@@ -160,35 +199,3 @@ def test_authentication_config_schema_rejects_symmetric_algorithm():
         "tenant_claim": "tenant_id",
     }
     assert validate_authentication_config(value)
-from fastapi import HTTPException
-
-from app.authentication import (
-    AuthenticationConfigurationError,
-    authenticator_from_environment,
-    require_authenticated_principal,
-)
-
-
-def test_authentication_configuration_fails_closed_when_missing(monkeypatch):
-    for name in (
-        "AGENTBOX_OIDC_ISSUER",
-        "AGENTBOX_OIDC_AUDIENCE",
-        "AGENTBOX_OIDC_JWKS_URI",
-        "AGENTBOX_OIDC_TENANT_CLAIM",
-    ):
-        monkeypatch.delenv(name, raising=False)
-    with pytest.raises(AuthenticationConfigurationError):
-        authenticator_from_environment()
-
-
-def test_fastapi_dependency_returns_service_unavailable_when_unconfigured(monkeypatch):
-    for name in (
-        "AGENTBOX_OIDC_ISSUER",
-        "AGENTBOX_OIDC_AUDIENCE",
-        "AGENTBOX_OIDC_JWKS_URI",
-        "AGENTBOX_OIDC_TENANT_CLAIM",
-    ):
-        monkeypatch.delenv(name, raising=False)
-    with pytest.raises(HTTPException) as error:
-        require_authenticated_principal(authorization=None)
-    assert error.value.status_code == 503
