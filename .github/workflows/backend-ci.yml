@@ -1,6 +1,8 @@
 name: AgentBox CI
 
 on:
+  # Allow maintainers to run the full validation suite on demand.
+  workflow_dispatch:
   # Validate the integration branch on push and every pull-request update.
   push:
     branches:
