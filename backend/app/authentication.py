@@ -6,6 +6,7 @@ created only after signature, issuer, audience, time and tenant claims validate.
 from __future__ import annotations
 
 import os
+from functools import lru_cache
 from dataclasses import dataclass
 from typing import Any, Protocol
 from urllib.parse import urlparse
@@ -36,6 +37,14 @@ class OIDCSigningKeyResolver:
 
     def resolve(self, token: str) -> Any:
         return self._client.get_signing_key_from_jwt(token).key
+
+
+@lru_cache(maxsize=16)
+def _cached_oidc_signing_key_resolver(
+    jwks_uri: str, timeout_seconds: int
+) -> OIDCSigningKeyResolver:
+    """Reuse the JWKS client across requests with identical OIDC endpoints."""
+    return OIDCSigningKeyResolver(jwks_uri, timeout_seconds)
 
 
 @dataclass(frozen=True)
@@ -89,7 +98,7 @@ class OIDCAuthenticator:
         key_resolver: SigningKeyResolver | None = None,
     ) -> None:
         self.config = config
-        self.key_resolver = key_resolver or OIDCSigningKeyResolver(
+        self.key_resolver = key_resolver or _cached_oidc_signing_key_resolver(
             config.jwks_uri, config.jwks_timeout_seconds
         )
 
