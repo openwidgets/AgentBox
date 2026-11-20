@@ -95,6 +95,10 @@ class OIDCAuthenticator:
 
     def authenticate(self, token: str) -> Principal:
         try:
+            header = jwt.get_unverified_header(token)
+            token_type = header.get("typ")
+            if token_type not in ("at+jwt", "application/at+jwt"):
+                raise AuthenticationError("Bearer credential is not an RFC 9068 access token")
             signing_key = self.key_resolver.resolve(token)
             claims = jwt.decode(
                 token,
