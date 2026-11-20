@@ -48,7 +48,7 @@ def config():
     )
 
 
-def token(private_key, **overrides):
+def token(private_key, *, header_typ="at+jwt", **overrides):
     now = datetime.now(UTC)
     claims = {
         "iss": "https://identity.example.test/",
@@ -59,7 +59,8 @@ def token(private_key, **overrides):
         "exp": int((now + timedelta(minutes=5)).timestamp()),
     }
     claims.update(overrides)
-    return jwt.encode(claims, private_key, algorithm="RS256")
+    headers = {} if header_typ is None else {"typ": header_typ}
+    return jwt.encode(claims, private_key, algorithm="RS256", headers=headers)
 
 
 def test_bearer_header_is_parsed_strictly():
@@ -96,6 +97,21 @@ def test_invalid_claims_are_rejected(key_pair, config, claims):
     authenticator = OIDCAuthenticator(config, StaticKeyResolver(public_key))
     with pytest.raises(AuthenticationError):
         authenticator.authenticate(token(private_key, **claims))
+
+
+@pytest.mark.parametrize("header_typ", ["at+jwt", "application/at+jwt"])
+def test_rfc9068_access_token_types_are_accepted(key_pair, config, header_typ):
+    private_key, public_key = key_pair
+    authenticator = OIDCAuthenticator(config, StaticKeyResolver(public_key))
+    assert authenticator.authenticate(token(private_key, header_typ=header_typ)).tenant_id == "tenant-7"
+
+
+@pytest.mark.parametrize("header_typ", [None, "JWT", "application/jwt", ""])
+def test_non_access_token_types_are_rejected(key_pair, config, header_typ):
+    private_key, public_key = key_pair
+    authenticator = OIDCAuthenticator(config, StaticKeyResolver(public_key))
+    with pytest.raises(AuthenticationError, match="RFC 9068 access token"):
+        authenticator.authenticate(token(private_key, header_typ=header_typ))
 
 
 def test_invalid_signature_is_rejected(key_pair, config):
