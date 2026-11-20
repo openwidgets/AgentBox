@@ -65,7 +65,8 @@ def token(private_key, *, header_typ="at+jwt", **overrides):
     if header_typ is None:
         # PyJWT supplies typ="JWT" when the header is omitted. Build this one
         # token explicitly so the negative test really has no typ header.
-        encode = lambda value: base64.urlsafe_b64encode(value).rstrip(b"=")
+        def encode(value):
+            return base64.urlsafe_b64encode(value).rstrip(b"=")
         header = encode(json.dumps({"alg": "RS256"}, separators=(",", ":")).encode())
         payload = encode(
             json.dumps(claims, separators=(",", ":"), default=str).encode()
