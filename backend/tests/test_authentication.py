@@ -48,7 +48,7 @@ def config():
     )
 
 
-def token(private_key, **overrides):
+def token(private_key, *, header_typ="at+jwt", **overrides):
     now = datetime.now(UTC)
     claims = {
         "iss": "https://identity.example.test/",
@@ -59,7 +59,9 @@ def token(private_key, **overrides):
         "exp": int((now + timedelta(minutes=5)).timestamp()),
     }
     claims.update(overrides)
-    return jwt.encode(claims, private_key, algorithm="RS256")
+    return jwt.encode(
+        claims, private_key, algorithm="RS256", headers={"typ": header_typ}
+    )
 
 
 def test_bearer_header_is_parsed_strictly():
@@ -78,6 +80,21 @@ def test_verified_token_creates_principal(key_pair, config):
     assert principal.tenant_id == "tenant-7"
     assert principal.principal_type == "user"
     assert principal.active is True
+
+@pytest.mark.parametrize("header_typ", ["at+jwt", "application/at+jwt"])
+def test_rfc9068_access_token_types_are_accepted(key_pair, config, header_typ):
+    private_key, public_key = key_pair
+    authenticator = OIDCAuthenticator(config, StaticKeyResolver(public_key))
+    principal = authenticator.authenticate(token(private_key, header_typ=header_typ))
+    assert principal.subject_id == "user-42"
+
+
+@pytest.mark.parametrize("header_typ", ["JWT", "application/jwt", ""])
+def test_non_access_token_types_are_rejected(key_pair, config, header_typ):
+    private_key, public_key = key_pair
+    authenticator = OIDCAuthenticator(config, StaticKeyResolver(public_key))
+    with pytest.raises(AuthenticationError):
+        authenticator.authenticate(token(private_key, header_typ=header_typ))
 
 
 @pytest.mark.parametrize(
