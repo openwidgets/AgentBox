@@ -208,8 +208,14 @@ def test_oidc_jwks_client_is_reused_for_identical_configuration(monkeypatch):
     authentication._cached_oidc_signing_key_resolver.cache_clear()
     monkeypatch.setattr(authentication, "OIDCSigningKeyResolver", FakeResolver)
     try:
-        first = OIDCAuthenticator(config())
-        second = OIDCAuthenticator(config())
+        oidc_config = OIDCAuthenticationConfig(
+            issuer="https://identity.example.test/",
+            audience="agentbox-api",
+            jwks_uri="https://identity.example.test/.well-known/jwks.json",
+            tenant_claim="tenant_id",
+        )
+        first = OIDCAuthenticator(oidc_config)
+        second = OIDCAuthenticator(oidc_config)
         assert first.key_resolver is second.key_resolver
         assert len(created) == 1
     finally:
