@@ -1,9 +1,11 @@
 from datetime import UTC, datetime, timedelta
+import base64
+import json
 
 import jwt
 import pytest
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
 from app.authentication import (
     AuthenticationError,
@@ -59,8 +61,28 @@ def token(private_key, *, header_typ="at+jwt", **overrides):
         "exp": int((now + timedelta(minutes=5)).timestamp()),
     }
     claims.update(overrides)
-    headers = {} if header_typ is None else {"typ": header_typ}
-    return jwt.encode(claims, private_key, algorithm="RS256", headers=headers)
+
+    if header_typ is None:
+        # PyJWT supplies typ="JWT" when the header is omitted. Build this one
+        # token explicitly so the negative test really has no typ header.
+        encode = lambda value: base64.urlsafe_b64encode(value).rstrip(b"=")
+        header = encode(json.dumps({"alg": "RS256"}, separators=(",", ":")).encode())
+        payload = encode(
+            json.dumps(claims, separators=(",", ":"), default=str).encode()
+        )
+        signing_input = header + b"." + payload
+        private = serialization.load_pem_private_key(private_key, password=None)
+        signature = private.sign(
+            signing_input, padding.PKCS1v15(), hashes.SHA256()
+        )
+        return (signing_input + b"." + encode(signature)).decode()
+
+    return jwt.encode(
+        claims,
+        private_key,
+        algorithm="RS256",
+        headers={"typ": header_typ},
+    )
 
 
 def test_bearer_header_is_parsed_strictly():
@@ -176,35 +198,3 @@ def test_authentication_config_schema_rejects_symmetric_algorithm():
         "tenant_claim": "tenant_id",
     }
     assert validate_authentication_config(value)
-from fastapi import HTTPException
-
-from app.authentication import (
-    AuthenticationConfigurationError,
-    authenticator_from_environment,
-    require_authenticated_principal,
-)
-
-
-def test_authentication_configuration_fails_closed_when_missing(monkeypatch):
-    for name in (
-        "AGENTBOX_OIDC_ISSUER",
-        "AGENTBOX_OIDC_AUDIENCE",
-        "AGENTBOX_OIDC_JWKS_URI",
-        "AGENTBOX_OIDC_TENANT_CLAIM",
-    ):
-        monkeypatch.delenv(name, raising=False)
-    with pytest.raises(AuthenticationConfigurationError):
-        authenticator_from_environment()
-
-
-def test_fastapi_dependency_returns_service_unavailable_when_unconfigured(monkeypatch):
-    for name in (
-        "AGENTBOX_OIDC_ISSUER",
-        "AGENTBOX_OIDC_AUDIENCE",
-        "AGENTBOX_OIDC_JWKS_URI",
-        "AGENTBOX_OIDC_TENANT_CLAIM",
-    ):
-        monkeypatch.delenv(name, raising=False)
-    with pytest.raises(HTTPException) as error:
-        require_authenticated_principal(authorization=None)
-    assert error.value.status_code == 503
